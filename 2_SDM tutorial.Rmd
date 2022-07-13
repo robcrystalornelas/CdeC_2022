@@ -1,0 +1,159 @@
+---
+title: "Practice SDM for Clubes de Ciencias!"
+output: html_notebook
+---
+
+Here we go! We are going to be making our first SDM of clubes de ciencias, and doing it with computer programming in the R language!
+
+Remeber, the first thing we have to do is let R know which packages we are using to make our SDMs.
+
+The three R packages are called `raster`, `rgdal`, and `dismo`
+
+First, remove the # before the line of code, and then run the `install.packages` function.  After you run the line of code, add the # back into the line of code.
+```{r}
+# install.packages(c('raster', 'rgdal', 'dismo','rJava','maptools'))
+```
+
+
+### Trouble w/ getting `rJava`?
+I was having some trouble getting `rJava` to load, so then I ran the following code:
+source of this tip [here](https://zhiyzuo.github.io/installation-rJava/).
+
+BUT please ignore it if rJava loads fine for you.
+
+```{r}
+install.packages("rJava")
+dyn.load('/Library/Java/JavaVirtualMachines/jdk1.8.0_60.jdk/Contents/Home/jre/lib/server/libjvm.dylib')
+library(rJava)
+```
+
+
+### Time for a sloth SDM!
+![](https://cdn6.dissolve.com/p/D1294_19_688/D1294_19_688_1200.jpg)
+
+Now, we'll import the set of occurrence data that we'll be using for our first SDM.  We have to first load up the R package called `dismo` 
+
+```{r}
+library(dismo) # This line of code loads the dismo package
+file <- paste(system.file(package="dismo"), "/ex/bradypus.csv", sep="") # This line of code loads a whole Excel database that contains GPS points for the sloth.
+```
+
+Run the code below to check out what the data look like in R.  
+```{r}
+sloth_data <- read.table(file,  header=TRUE,  sep=",") # This line of code turns our excel spreadsheet into a table that R can read.
+head(sloth_data)  # this line of code lets us actually look at the table in R
+```
+
+The table with all the sloth data has lots of extra information.  We don't need all of it to make an SDM, so we'll keep just the GPS points for where the sloth has been seen
+```{r}
+sloth_data <- sloth_data[,2:3] # This line of code tells R to keep only the latitude and longitude for the slots
+head(sloth_data)
+```
+
+### The climate data
+
+First, we've got to find all of the climate data
+
+```{r}
+link_to_find_climate_data <- file.path(system.file(package="dismo"), 'ex') # This line of code tells R where we stored out climate data.
+
+climate_files <- list.files(link_to_find_climate_data, pattern='grd$', full.names=TRUE )
+climate_files # here we see that R found many files related to global climate on the computer.
+```
+
+Our next step is to group our climate data.  R calls this "stacking" so now, let's stack up all of our climate data.
+```{r}
+stacked_climate_data <- stack(climate_files)
+stacked_climate_data
+```
+
+Let's check out what our climate data are called.  They have kind of weird names. Bio1, bio12, bio16.  Basically each one represents global temperatures, global precipitation and more!
+
+```{r}
+names(stacked_climate_data)
+```
+
+Let's see how the climate data look.  Areas that are colored in green mean those areas have higher temperature or higher precipitation amounts.
+```{r}
+plot(stacked_climate_data)
+```
+
+We can even check out one layer of climate data at a time if we want
+```{r}
+plot(stacked_climate_data, 1)
+```
+
+### Mapping climate data and occurrence data
+Now we can visually show, in the same window, one layer of climate data, plus a map of the world, plus the occurrence data for our species
+
+```{r}
+library(maptools)
+data(wrld_simpl) # This line of data will download a map of the world to our R program
+plot(wrld_simpl) # Here we can get a look at what the map looks like.
+```
+
+Now, let's make a quick map of the sloth's range.  We'll plot the world map, and use the points() function to add in points wherever a sloth has been spotted.  You can switch out the color `blue` for another color if you want :) 
+```{r}
+plot(wrld_simpl)
+points(sloth_data, col='blue')
+
+```
+
+### Extracting data
+
+Now, we gather climate information at every blue dot on our map.  This is our way of knowing whether sloths like area with lots of rain, or warm temperatures.  This is the best and most useful part of a species distribution model. 
+
+After taking the next few steps and writing the next lines of code, we have a bunch of data points corresponding to the type of climate that the species likes best, and other data points corresponding to climate the invasive species doesn't like as much.
+
+```{r}
+set.seed(0) # This is a funny line of R code, but we need it to make sure our results of the same every time we run this code.
+group <- kfold(sloth_data, 5)
+locations_sloths_like_train <- sloth_data[group != 1, ]
+locations_sloths_like_test <- sloth_data[group == 1, ]
+```
+
+#### What kind of climate does the sloth NOT like?
+```{r}
+extent_of_our_map <- extent(-90, -32, -33, 23) # this is the GPS range for our whole map.
+stacked_climate_data <- dropLayer(stacked_climate_data, 'biome') # get rid of one piece of climate data that is tough to work with
+locations_sloths_dislike <- randomPoints(stacked_climate_data, n=1000, ext=extent_of_our_map, extf = 1.25) # This line of code gather data on the climate that the sloth DOES NOT like very much.
+```
+
+We don't need to understand the next lines of code that much, but they are important for our statistics.  They let us know if the maps we make are accurate.
+```{r}
+colnames(locations_sloth_dislikes) = c('lon', 'lat')
+group <- kfold(locations_sloth_dislikes, 5)
+locations_sloth_dislikes_train <- locations_sloth_dislikes[group != 1, ]
+locations_sloth_dislikes_test <- locations_sloth_dislikes[group == 1, ]
+```
+
+### Maxent
+Now, we make our predictive maps using the modeling software called `Maxent`
+This part might take a little while, so be patient : )
+```{r}
+maxent()
+# jar <- paste(system.file(package="dismo"), "/java/maxent.jar", sep='')
+maxent_results <- maxent(stacked_climate_data, locations_sloths_like_train)
+plot(maxent_results)
+```
+
+Response plot
+```{r}
+response(maxent_results)
+```
+
+Making our maps
+```{r}
+e <- evaluate(locations_sloths_like_test, locations_sloth_dislikes_test, maxent_results, stacked_climate_data)
+e
+px <- predict(stacked_climate_data, xm, ext=extent_of_our_map, progress='')
+par(mfrow=c(1,2))
+plot(px, main='Maxent, raw values')
+plot(wrld_simpl, add=TRUE, border='dark grey')
+tr <- threshold(e, 'spec_sens')
+plot(px > tr, main='presence/absence')
+plot(wrld_simpl, add=TRUE, border='dark grey')
+points(pres_train, pch='+')
+
+```
+

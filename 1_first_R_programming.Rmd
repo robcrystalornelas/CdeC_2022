@@ -1,0 +1,149 @@
+---
+title: "Getting to know R Programming"
+output: html_notebook
+---
+
+### Welcome to your first R Notebook :)
+
+Here we go on our first R programming exercises!! I think you will all enjoy.  This window on the left is called your "R Notebook." The R Notebook is where you write computer code, and see the results of your computer code.  
+
+On the right side of the screen you can see what is called the "viewer."  Mostly, we'll worry about this R Notebook side of this screen, but we can easily turn your R code into a website or a PDF file for easier reading, and we can see what your website or PDF will look like in much nicer formatting than this coding screen. We won't worry about the viewer right now, but we'll check it out later.
+
+I got a lot of this information from my lessons at [The Ocean Health Index](http://ohi-science.org/data-science-training/rstudio.html). They're a group of researchers trying to understand what we can do to keep our oceans healthy! 
+
+OK let's begin our R adventure.  See the gray box below?  This is where we write our R code.  Anything above the box is just regular text.  Everything in the box is R code!
+
+### R is just like a calculator
+
+At the most basic, R is like a big calculator. Let's do some math below. I entered a couple of math problems.  If you click the little play button in the top right corner of the code box below, R will "run the code" and calculate the math problem.
+
+```{r}
+4 + 5
+```
+
+We can run multiple lines of code in one code block, and we get two lines of output.
+
+```{r}
+10+5
+
+5*10
+```
+
+Did you try running that code? Yesssss!! Now, go back into that code block and try adding your own math equation or two.
+
+OK, now you try creating a code box below, and doing some math problems.  Go to the top of your Rstudio window and click the "insert" button and choose the option that says R.
+
+### Moving on to assigning objects
+
+The R programming language has its own memory and can remember math equations that you tell it to computer.  We'll see an example of this below.
+
+In this next code block, we save the answer to 4 + 4 as the letter or variable name x.  Run the code by clicking the play button and see what happens.
+
+```{r}
+x <- 4+4
+```
+
+Notice, if we run the code above, R doesn't tell us the answer.  That's because we save the answer of 4+4 to the `object` named x. To see what the answer to 4 + 4 is, we need to run a line of code where we recall the variable named x
+
+```{r}
+x
+```
+
+**Keep in mind** Spelling matters and so do capital letters. In the code block below, try running a line of code with `x` and a line of code with `X` what happens with each of those?
+
+```{r}
+
+```
+
+
+### Naming variables
+You don't always have to name your variables x, you can be more creative.  Actually, it's really helpful if you give your variables specific names so you know what kind of numbers or data your variable has.
+
+```{r}
+answer_to_problem <- 4*10
+```
+
+Now, let's print out the answer by typing the name exactly like we saved it above
+```{r}
+
+```
+
+You don't always have to assign equations and numbers to your R object.  Check this out.  
+```{r}
+clubes_de_ciencias <- "es lo mejor!"
+```
+
+But notice above, whenever I assign text to an object, you need to have the text in quotation marks.
+```{r}
+clubes_de_ciencias
+```
+
+Now you try assigning your own text to an object.  Remember, first insert a code block, then assign some text to an object.
+
+```{r}
+
+```
+
+What happens if we try to call our object like this?
+
+```{r}
+clubesdeciencias
+```
+
+
+### A little more math!
+
+We can save numbers, and then re-use those objects in new equations.
+
+Here I saved a weight of 57.5 KG as an object.
+```{r}
+weight_kg <- 57.5
+```
+
+Now, say I want to convert that weight to pounds. We need to multiply the weight in KG by 2.2 to convert kilograms to pounds.  So let's just use the value we saved previously in a new equation.
+```{r}
+weight_kg * 2.2
+```
+
+
+### R has some cool built-in features
+Sequences.  Say we wanted a big list of numbers going counting up from 1-10.  Well, we don't have to type out a big list and save it.  We can use a built in function of R to make a list of numbers.
+
+To make a list the long way we could type out this:
+```{r}
+counting_to_ten <- c(1,2,3,4,5,6,7,8,9,10)
+counting_to_ten
+```
+
+That could take a while though!! We'll use a built-in function to count to ten for us, and print out that list of numbers
+```{r}
+seq(from = 1, to = 10)
+```
+
+Try it yourself with a new set of numbers.  And you can even save that list to an object
+```{r}
+```
+
+### Making dog memes : )
+
+One of the most important features of R is that we can use programming to make dog memes!!
+
+First, run this line of code to create a new function that we will call `getdoge`
+
+```{r}
+getdoge <- function(x){
+  x = paste(x, collapse="/")
+  writeLines(
+    sprintf("![](http://dogr.io/%s.png)", x)
+  )
+}
+```
+
+Then, run our new function with 3 words we want to create our dog meme out of
+```{r}
+getdoge(c("wow", "suchscience", "muchecology"))
+```
+
+Then, copy and paste the output below to get:
+
+![](http://dogr.io/wow/suchscience/muchecology.png)

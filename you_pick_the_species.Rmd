@@ -1,0 +1,81 @@
+---
+title: "Now you pick the species : )"
+output: html_notebook
+---
+
+First, we'll load up all the important R packages
+```{r}
+library(dismo)
+library(rgbif)
+```
+
+
+```{r}
+your_species_data <- occ_search(scientificName = "GENUS SPECIES", 
+                          country = 'MX', fields=c('name','country','countryCode','stateProvince','year','decimalLatitude','decimalLongitude'), limit = 500, return = 'data')
+```
+
+Make a simple map just to show where we have GPS (occurence) points for whatever species you choose
+```{r}
+data("wrld_simpl") # this loads up the map
+xlim <- c(-129,-79) # this tells us to focus on mexico only
+ylim <- c(15,35) # this tells us to focus on mexico only
+plot(wrld_simpl,xlim=xlim,ylim=ylim) # make a zoomed-in map of mexico
+points(your_species_data$decimalLongitude,your_species_data$decimalLatitude, col='purple')
+
+```
+
+#### Yay!! You made the map
+Now, we gather our climate data.  This is the same climate data we have used in the past.  Again, we make sure that we are keeping the climate data to Mexico only.
+```{r}
+path <- file.path(system.file(package="dismo"), 'ex')
+files <- list.files(path, pattern='grd$', full.names=TRUE )
+files
+predictors <- stack(files)
+predictors
+
+extent_of_mexico_map <- extent(-129, -79, -15, 35) # Set your extent to the area we're focused on
+predictors_cropped_to_mexico <- crop(predictors, extent_of_mexico_map)
+```
+
+
+```{r}
+set.seed(0)
+group <- kfold(your_species_data, 5)
+pres_train_your_species <- your_species_data[group != 1, ]
+pres_train_your_species <- as.data.frame(pres_train_your_species[,1:2])
+
+pres_test_your_species <- your_species_data[group == 1, ]
+pres_test_your_species <- as.data.frame(pres_test_your_species[,1:2])
+
+```
+
+```{r}
+pred_nf <- dropLayer(predictors_cropped_to_mexico, 'biome')
+backg <- randomPoints(pred_nf, n=1000, ext=extent_of_mexico_map, extf = 1.25)
+colnames(backg) = c('lon', 'lat')
+group <- kfold(backg, 5)
+backg_train <- backg[group != 1, ]
+backg_test <- backg[group == 1, ]
+```
+
+Now start making your MaxEnt distribution model
+```{r}
+jar <- paste(system.file(package="dismo"), "/java/maxent.jar", sep='')
+xm <- maxent(predictors_cropped_to_mexico, pres_train_your_species, factors='biome')
+plot(xm)
+```
+
+Making maps
+
+```{r}
+e <- evaluate(pres_test_your_species, backg_test, xm, predictors_cropped_to_mexico)
+e
+px <- predict(predictors_cropped_to_mexico, xm, ext=extent_of_mexico_map, progress='')
+par(mfrow=c(1,2))
+plot(px, main='## YOUR SPECIES NAME ##')
+```
+
+**Whoo hooo!! Nice work on your model!!**
+
+![](http://bransonswildworld.com/wp-content/uploads/2015/07/axolotl-300x279.jpg)

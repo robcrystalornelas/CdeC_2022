@@ -1,0 +1,83 @@
+---
+title: "Making an SDM for a new species!"
+output: html_notebook
+---
+
+One of the coolest part about SDMs is making them for your own species of interest.  Are you curious about the distribution of an endangered species or an invasive species?  You can search for occurrence data on websites like [GBIF](https://www.gbif.org)
+
+```{r}
+library(dismo)
+library(rgbif)
+library(maptools)
+```
+
+
+```{r}
+monk_points <- occ_search(scientificName = "Myiopsitta monachus", 
+                          country = 'MX', fields=c('name','country','countryCode','stateProvince','year','decimalLatitude','decimalLongitude'), limit = 500, return = 'data')
+```
+
+
+Lets make a quick map of the 500 points we downloaded for Monk Parakeets in Mexico.
+```{r}
+data("wrld_simpl")
+xlim <- c(-129,-79)
+ylim <- c(15,35)
+plot(wrld_simpl,xlim=xlim,ylim=ylim) # make a zoomed-in map of mexico
+points(monk_points$decimalLongitude,monk_points$decimalLatitude, col='purple')
+```
+
+#### Climate data
+```{r}
+path <- file.path(system.file(package="dismo"), 'ex')
+files <- list.files(path, pattern='grd$', full.names=TRUE )
+files
+predictors <- stack(files)
+predictors
+
+extent_of_mexico_map <- extent(-129, -79, -15, 35) # Set your extent to the area we're focused on
+predictors_cropped_to_mexico <- crop(predictors, extent_of_mexico_map)
+predictors_cropped_to_mexico
+```
+
+```{r}
+set.seed(0)
+group <- kfold(monk_points, 5)
+pres_train_monk_parakeets <- monk_points[group != 1, ]
+pres_train_monk_parakeets <- as.data.frame(pres_train_monk_parakeets[,1:2])
+
+pres_test_monk_parakeets <- monk_points[group == 1, ]
+pres_test_monk_parakeets <- as.data.frame(pres_test_monk_parakeets[,1:2])
+
+```
+
+```{r}
+pred_nf <- dropLayer(predictors_cropped_to_mexico, 'biome')
+backg <- randomPoints(pred_nf, n=1000, ext=extent_of_mexico_map, extf = 1.25)
+colnames(backg) = c('lon', 'lat')
+group <- kfold(backg, 5)
+backg_train <- backg[group != 1, ]
+backg_test <- backg[group == 1, ]
+```
+
+Now start making your MaxEnt distribution model
+```{r}
+jar <- paste(system.file(package="dismo"), "/java/maxent.jar", sep='')
+xm <- maxent(predictors_cropped_to_mexico, pres_train_monk_parakeets, factors='biome')
+plot(xm)
+```
+
+Making maps
+```{r}
+e <- evaluate(pres_test_monk_parakeets, backg_test, xm, predictors_cropped_to_mexico)
+e
+px <- predict(predictors_cropped_to_mexico, xm, ext=extent_of_mexico_map, progress='')
+par(mfrow=c(1,2))
+plot(px, main='Maxent, raw values')
+plot(wrld_simpl, add=TRUE, border='dark grey')
+tr <- threshold(e, 'spec_sens')
+plot(px > tr, main='presence/absence')
+plot(wrld_simpl, add=TRUE, border='dark grey')
+points(pres_train_monk_parakeets, pch='+')
+```
+

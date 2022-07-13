@@ -1,0 +1,29 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+Let's bring in some spatial data.
+
+```{r}
+library(rgdal)
+library(raster)
+library(maptools)
+mexico_fire_data <- readOGR("~/Desktop/CdeC_2019/fire_data/modis_fire_data/","MODIS_C6_Central_America_7d")
+
+summary(mexico_fire_data)
+spplot(mexico_fire_data)
+```
+
+
+Import a map of all mexico states
+```{r}
+mexico_states <- readOGR("~/Desktop/CdeC_2019/fire_data/modis_fire_data/","MEX_adm1")
+summary(mexico_states)
+spplot(mexico_states, z = "ID_1")
+```
+
+```{r}
+raster("elevation.img")
+```
+
