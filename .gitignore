@@ -6,6 +6,8 @@
 *.exe
 *.o
 *.so
+*.nb.html
+.Rhistory
 
 # Packages #
 ############
